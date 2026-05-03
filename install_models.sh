@@ -92,7 +92,7 @@ if [ ! -d "ComfyUI-Impact-Subpack" ]; then
     # Try to install system dependencies for OpenCV if apt is available
     if command -v apt-get &> /dev/null; then
         echo "  - Checking system libraries..."
-        apt-get update && apt-get install -y libgl1-mesa-glx libglib2.0-0 || echo "⚠️ System lib install failed, hoping for the best.";
+        apt-get update && apt-get install -y libgl1 libglib2.0-0 || echo "⚠️ System lib install failed, hoping for the best.";
     fi
     
     cd "$COMFY_DIR/custom_nodes"
@@ -104,7 +104,7 @@ else
     python3 -m pip install ultralytics opencv-python-headless
     
     if command -v apt-get &> /dev/null; then
-           apt-get update && apt-get install -y libgl1-mesa-glx libglib2.0-0 || true;
+           apt-get update && apt-get install -y libgl1 libglib2.0-0 || true;
     fi
     
     cd "$COMFY_DIR/custom_nodes"

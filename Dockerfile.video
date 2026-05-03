@@ -34,7 +34,9 @@ RUN ln -s /comfyui /ComfyUI
 # COPY & RUN THE PROVEN INSTALL SCRIPT
 # ============================================================================
 COPY install_models_fast.sh /tmp/install_models_fast.sh
-RUN chmod +x /tmp/install_models_fast.sh && /tmp/install_models_fast.sh && rm /tmp/install_models_fast.sh
+RUN chmod +x /tmp/install_models_fast.sh \
+    && HF_TOKEN="${HF_TOKEN}" CIVITAI_TOKEN="${CIVITAI_TOKEN}" /tmp/install_models_fast.sh \
+    && rm /tmp/install_models_fast.sh
 
 
 
