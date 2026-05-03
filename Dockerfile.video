@@ -1,0 +1,43 @@
+# ============================================================================
+# ComfyUI Serverless — VIDEO Generation (Wan 2.2 I2V + T2V)
+# ============================================================================
+# Base: runpod/worker-comfyui (has serverless handler built-in)
+# Workflows: animate_real.json, animate_t2v_real.json
+#
+# Uses the proven install_models_fast.sh script that was tested on rented pods.
+# ============================================================================
+
+FROM runpod/worker-comfyui:5.8.5-base
+
+# Build args for gated model downloads (passed as env vars to the script)
+ARG HF_TOKEN=""
+ARG CIVITAI_TOKEN=""
+ENV HF_TOKEN=${HF_TOKEN}
+ENV CIVITAI_TOKEN=${CIVITAI_TOKEN}
+
+# ============================================================================
+# PATH COMPATIBILITY
+# ============================================================================
+# The worker-comfyui base image installs ComfyUI at /comfyui (lowercase).
+# Our proven install scripts detect /ComfyUI (uppercase).
+# A symlink bridges the gap without modifying the scripts.
+# ============================================================================
+RUN ln -s /comfyui /ComfyUI
+
+# ============================================================================
+# COPY & RUN THE PROVEN INSTALL SCRIPT
+# ============================================================================
+COPY install_models_fast.sh /tmp/install_models_fast.sh
+RUN chmod +x /tmp/install_models_fast.sh && /tmp/install_models_fast.sh && rm /tmp/install_models_fast.sh
+
+# ============================================================================
+# CLEANUP — Don't leak tokens into the final image layers
+# ============================================================================
+ENV HF_TOKEN=""
+ENV CIVITAI_TOKEN=""
+
+# ============================================================================
+# NOTE: No custom handler needed — worker-comfyui base image includes one.
+# ============================================================================
+
+WORKDIR /comfyui
