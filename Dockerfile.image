@@ -12,8 +12,16 @@ FROM runpod/worker-comfyui:5.8.5-base
 # Build args for gated model downloads (passed as env vars to the script)
 ARG CIVITAI_TOKEN=""
 ARG HF_TOKEN=""
-ENV CIVITAI_TOKEN=${CIVITAI_TOKEN}
-ENV HF_TOKEN=${HF_TOKEN}
+
+# ============================================================================
+# SYSTEM DEPENDENCIES
+# ============================================================================
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 
 # ============================================================================
 # PATH COMPATIBILITY
@@ -30,11 +38,7 @@ RUN ln -s /comfyui /ComfyUI
 COPY install_models.sh /tmp/install_models.sh
 RUN chmod +x /tmp/install_models.sh && /tmp/install_models.sh && rm /tmp/install_models.sh
 
-# ============================================================================
-# CLEANUP — Don't leak tokens into the final image layers
-# ============================================================================
-ENV CIVITAI_TOKEN=""
-ENV HF_TOKEN=""
+
 
 # ============================================================================
 # NOTE: No custom handler needed — worker-comfyui base image includes one.
