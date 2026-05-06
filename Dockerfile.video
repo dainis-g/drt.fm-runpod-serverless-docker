@@ -41,7 +41,12 @@ RUN chmod +x /tmp/install_models_fast.sh \
 
 
 # ============================================================================
-# NOTE: No custom handler needed — worker-comfyui base image includes one.
+# PATCH: Add video output support to the built-in handler.
+# The default handler only returns SaveImage outputs ("images" key).
+# VHS_VideoCombine outputs under "gifs" key — this patch adds handling
+# so video files are returned in the API response as "videos".
 # ============================================================================
+COPY patch_handler_video.py /tmp/patch_handler_video.py
+RUN python /tmp/patch_handler_video.py && rm /tmp/patch_handler_video.py
 
 WORKDIR /comfyui
