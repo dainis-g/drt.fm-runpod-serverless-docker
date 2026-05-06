@@ -136,6 +136,78 @@ curl "https://api.runpod.ai/v2/ENDPOINT_ID/status/JOB_ID" \
 
 When `status` changes to `COMPLETED`, the response will contain the image as base64. If it stays `IN_QUEUE` for more than ~60 seconds on a cold start, check the worker logs in the RunPod console.
 
+### Test 2: Video Generation (Wan 2.2)
+
+To test the Video Generation container (`comfyui-video-gen:latest`), you can submit the `animate_real.json` workflow. The output will be a JSON object containing the base64-encoded `mp4` video.
+
+```bash
+curl "https://api.runpod.ai/v2/YOUR_VIDEO_ENDPOINT_ID/run" \
+  -X POST \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input": {
+      "workflow": {
+        "1": {
+          "class_type": "LoadImage",
+          "inputs": { "image": "https://example.com/test-image.jpg" }
+        },
+        "8": {
+          "class_type": "WanVideoTextEncode",
+          "inputs": {
+            "positive_prompt": "A cat walking in space",
+            "negative_prompt": "text, watermark, low quality, static, blurry",
+            "t5": ["4", 0],
+            "force_offload": false,
+            "use_disk_cache": true
+          }
+        },
+        "9": {
+          "class_type": "WanVideoImageToVideoEncode",
+          "inputs": {
+            "vae": ["5", 0],
+            "clip_embeds": ["7", 0],
+            "start_image": ["1", 0],
+            "width": 832,
+            "height": 480,
+            "num_frames": 81,
+            "force_offload": false,
+            "tiled_vae": false
+          }
+        },
+        "10": {
+          "class_type": "WanVideoSampler",
+          "inputs": {
+            "model": ["3", 0],
+            "image_embeds": ["9", 0],
+            "text_embeds": ["8", 0],
+            "seed": 12345,
+            "steps": 25,
+            "cfg": 6.0,
+            "sampler": "euler",
+            "scheduler": "flowmatch_distill",
+            "denoise": 1.0,
+            "force_offload": true
+          }
+        },
+        "12": {
+          "class_type": "VHS_VideoCombine",
+          "inputs": {
+            "images": ["11", 0],
+            "frame_rate": 16,
+            "loop_count": 0,
+            "filename_prefix": "Animated",
+            "format": "video/h264-mp4",
+            "pingpong": false,
+            "save_output": true
+          }
+        }
+      }
+    }
+  }'
+```
+
+*Note: The snippet above is a shortened version of `animate_real.json` highlighting the key changing variables (Prompt, Image, Dimensions, FPS). To test, you should load the full `animate_real.json` file and swap out the `{PLACEHOLDERS}` with actual values.*
 ---
 
 ## Troubleshooting

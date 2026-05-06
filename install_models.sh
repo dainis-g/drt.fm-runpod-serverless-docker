@@ -16,6 +16,26 @@
 
 set -e  # Exit on error
 
+# GitHub custom nodes are pinned to commits observed on 2026-05-05.
+# Do not clone moving branch heads in production images; upstream ComfyUI nodes
+# can change validation behavior and break old workflows.
+IMPACT_PACK_COMMIT="429d0159ad429e64d2b3916e6e7be9c22d025c3c"
+IMPACT_SUBPACK_COMMIT="50c7b71a6a224734cc9b21963c6d1926816a97f1"
+
+clone_pinned_repo() {
+    local dir="$1"
+    local url="$2"
+    local commit="$3"
+
+    if [ ! -d "$dir/.git" ]; then
+        rm -rf "$dir"
+        git clone --no-checkout "$url" "$dir"
+    fi
+
+    git -C "$dir" fetch --depth 1 origin "$commit"
+    git -C "$dir" checkout --detach "$commit"
+}
+
 # ============================================================================
 # 1. Detect ComfyUI Directory
 # ============================================================================
@@ -70,11 +90,12 @@ cd "$COMFY_DIR/custom_nodes";
 # Impact Pack (Required for FaceDetailer)
 if [ ! -d "ComfyUI-Impact-Pack" ]; then
     echo "  - Installing Impact Pack...";
-    git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Impact-Pack.git;
+    clone_pinned_repo "ComfyUI-Impact-Pack" "https://github.com/ltdrdata/ComfyUI-Impact-Pack.git" "$IMPACT_PACK_COMMIT";
 fi
 
 # Always ensure main pack dependencies
 if [ -d "ComfyUI-Impact-Pack" ]; then
+    clone_pinned_repo "ComfyUI-Impact-Pack" "https://github.com/ltdrdata/ComfyUI-Impact-Pack.git" "$IMPACT_PACK_COMMIT"
     echo "  - Checking Impact Pack dependencies..."
     cd ComfyUI-Impact-Pack
     pip install -r requirements.txt
@@ -84,7 +105,7 @@ fi
 # Impact Subpack (REQUIRED for UltralyticsDetectorProvider)
 if [ ! -d "ComfyUI-Impact-Subpack" ]; then
     echo "  - Installing Impact Subpack (Critical for FaceDetailer)...";
-    git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git;
+    clone_pinned_repo "ComfyUI-Impact-Subpack" "https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git" "$IMPACT_SUBPACK_COMMIT";
     cd ComfyUI-Impact-Subpack
     pip install -r requirements.txt
     python3 -m pip install ultralytics opencv-python-headless
@@ -98,6 +119,7 @@ if [ ! -d "ComfyUI-Impact-Subpack" ]; then
     cd "$COMFY_DIR/custom_nodes"
 else
     echo "  ✓ Impact Subpack already installed."
+    clone_pinned_repo "ComfyUI-Impact-Subpack" "https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git" "$IMPACT_SUBPACK_COMMIT"
     # Force deps check
     cd ComfyUI-Impact-Subpack
     pip install -r requirements.txt

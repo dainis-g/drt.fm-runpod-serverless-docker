@@ -13,6 +13,28 @@
 
 set -e  # Exit on error
 
+# GitHub custom nodes are pinned to commits observed on 2026-05-05.
+# Do not clone moving branch heads in production images; upstream ComfyUI nodes
+# can change validation behavior and break old workflows.
+COMFYUI_GGUF_COMMIT="6ea2651e7df66d7585f6ffee804b20e92fb38b8a"
+WAN_VIDEO_WRAPPER_COMMIT="d18cdb18597f525ef8d613a0cb447080fbab8fce"
+VIDEO_HELPER_SUITE_COMMIT="2984ec4c4b93292421888f38db74a5e8802a8ff8"
+FRAME_INTERPOLATION_COMMIT="26545cc2dd95bc3d27f056016300673bdeee78f5"
+
+clone_pinned_repo() {
+    local dir="$1"
+    local url="$2"
+    local commit="$3"
+
+    if [ ! -d "$dir/.git" ]; then
+        rm -rf "$dir"
+        git clone --no-checkout "$url" "$dir"
+    fi
+
+    git -C "$dir" fetch --depth 1 origin "$commit"
+    git -C "$dir" checkout --detach "$commit"
+}
+
 # ============================================================================
 # 1. Detect ComfyUI Directory
 # ============================================================================
@@ -62,7 +84,7 @@ cd "$COMFY_DIR/custom_nodes";
 # ComfyUI-GGUF (REQUIRED for GGUF models)
 if [ ! -d "ComfyUI-GGUF" ]; then
     echo "  - Installing ComfyUI-GGUF...";
-    git clone --depth 1 https://github.com/city96/ComfyUI-GGUF.git;
+    clone_pinned_repo "ComfyUI-GGUF" "https://github.com/city96/ComfyUI-GGUF.git" "$COMFYUI_GGUF_COMMIT";
     cd ComfyUI-GGUF
     pip install -r requirements.txt
     cd "$COMFY_DIR/custom_nodes"
@@ -70,6 +92,7 @@ fi
 
 # Ensure ComfyUI-GGUF dependencies are met (in case of re-run)
 if [ -d "ComfyUI-GGUF" ]; then
+    clone_pinned_repo "ComfyUI-GGUF" "https://github.com/city96/ComfyUI-GGUF.git" "$COMFYUI_GGUF_COMMIT"
     cd ComfyUI-GGUF
     pip install -r requirements.txt
     cd "$COMFY_DIR/custom_nodes"
@@ -78,11 +101,12 @@ fi
 # WanVideoWrapper (Required for VAE/TextEnc/Conditioning)
 if [ ! -d "ComfyUI-WanVideoWrapper" ]; then
     echo "  - Installing WanVideoWrapper...";
-    git clone --depth 1 https://github.com/kijai/ComfyUI-WanVideoWrapper.git;
+    clone_pinned_repo "ComfyUI-WanVideoWrapper" "https://github.com/kijai/ComfyUI-WanVideoWrapper.git" "$WAN_VIDEO_WRAPPER_COMMIT";
 fi
 
 # Ensure Wan dependencies
 if [ -d "ComfyUI-WanVideoWrapper" ]; then
+    clone_pinned_repo "ComfyUI-WanVideoWrapper" "https://github.com/kijai/ComfyUI-WanVideoWrapper.git" "$WAN_VIDEO_WRAPPER_COMMIT"
     echo "  - Checking WanVideoWrapper dependencies..."
     cd ComfyUI-WanVideoWrapper
     pip install -r requirements.txt
@@ -92,13 +116,15 @@ fi
 # VideoHelperSuite (Required for saving video)
 if [ ! -d "ComfyUI-VideoHelperSuite" ]; then
     echo "  - Installing VideoHelperSuite...";
-    git clone --depth 1 https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git;
+    clone_pinned_repo "ComfyUI-VideoHelperSuite" "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git" "$VIDEO_HELPER_SUITE_COMMIT";
+else
+    clone_pinned_repo "ComfyUI-VideoHelperSuite" "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git" "$VIDEO_HELPER_SUITE_COMMIT"
 fi
 
 ## Frame Interpolation (RIFE) - For 30fps smoothness
 #if [ ! -d "ComfyUI-Frame-Interpolation" ]; then
 #    echo "  - Installing ComfyUI-Frame-Interpolation...";
-#    git clone --depth 1 https://github.com/Fannovel16/ComfyUI-Frame-Interpolation.git;
+#    clone_pinned_repo "ComfyUI-Frame-Interpolation" "https://github.com/Fannovel16/ComfyUI-Frame-Interpolation.git" "$FRAME_INTERPOLATION_COMMIT";
 #    cd ComfyUI-Frame-Interpolation && pip install -r requirements.txt && cd ..
 #fi
 
